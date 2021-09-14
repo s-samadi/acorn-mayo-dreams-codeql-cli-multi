@@ -1,0 +1,66 @@
+name: CodeQL CLI Multi Matrix
+# https://docs.github.com/en/code-security/code-scanning/using-codeql-code-scanning-with-your-existing-ci-system/configuring-codeql-cli-in-your-ci-system
+
+on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+  workflow_dispatch:
+  
+env:
+  WORKSPACE: /home/runner/work 
+
+  # CODEQL DIRECTORIES, FILES
+  CODEQL_HOME: /home/runner/work/codeql-home
+  CODEQL_BINARY: /home/runner/work/codeql-home/codeql/codeql
+  CODEQL_DATABASE: /home/runner/work/codeql-database
+  CODEQL_SARIF: /home/runner/work/codeql-sarif-results
+
+jobs:
+  analyze:
+
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        language: ['java', 'javascript' ]
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      
+    - name: Setup Required Directories and Files
+      run: |
+        cd ${{ env.WORKSPACE }}
+        mkdir ${{ env.CODEQL_HOME }}
+        mkdir ${{ env.CODEQL_SARIF }}
+    
+    - name: Download CodeQL Bundle
+      run: |
+        cd ${{ env.CODEQL_HOME }}
+        wget -q https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz
+        tar xzf ./codeql-bundle-linux64.tar.gz
+    
+    - name: Create CodeQL Database
+      run: |
+        ${{ env.CODEQL_BINARY }} database create ${{ env.CODEQL_DATABASE }} \
+          --language=${{ matrix.language }}
+
+    # https://docs.github.com/en/code-security/code-scanning/using-codeql-code-scanning-with-your-existing-ci-system/configuring-codeql-cli-in-your-ci-system#example-ci-configuration-for-codeql-analysis
+    - name: Perform CodeQL Analysis
+      run: |
+        # analyse java
+        ${{ env.CODEQL_BINARY }} database analyze ${{ env.CODEQL_DATABASE }} ${{ matrix.language }}-code-scanning.qls \
+          --format=sarif-latest \
+          --sarif-category=${{ matrix.language }} \
+          --output=${{ env.CODEQL_SARIF }}/${{ matrix.language }}-results.sarif
+      
+    - name: Upload CodeQL SARIF Results
+      run: |
+          ${{ env.CODEQL_BINARY }} github upload-results \
+            --repository=$GITHUB_REPOSITORY \
+            --ref=$GITHUB_REF \
+            --commit=$GITHUB_SHA \
+            --sarif=${{ env.CODEQL_SARIF }}/${{ matrix.language }}-results.sarif \
+            --github-auth-stdin=${{ secrets.ACORN_MAYO_DREAMS_ACCESS_TOKEN }}
