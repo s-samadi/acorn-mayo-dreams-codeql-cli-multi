@@ -50,8 +50,7 @@ jobs:
     # https://docs.github.com/en/code-security/code-scanning/using-codeql-code-scanning-with-your-existing-ci-system/configuring-codeql-cli-in-your-ci-system#example-ci-configuration-for-codeql-analysis
     - name: Perform CodeQL Analysis
       run: |
-        # analyse java
-        ${{ env.CODEQL_BINARY }} database analyze ${{ env.CODEQL_DATABASE }} ${{ matrix.language }}-code-scanning.qls \
+        ${{ env.CODEQL_BINARY }} database analyze ${{ env.CODEQL_DATABASE }}/${{ matrix.language }} ${{ matrix.language }}-code-scanning.qls \
           --format=sarif-latest \
           --sarif-category=${{ matrix.language }} \
           --output=${{ env.CODEQL_SARIF }}/${{ matrix.language }}-results.sarif
